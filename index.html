@@ -265,8 +265,31 @@ async function search(){
     const docs=geo.response?.docs||[];
     if(!docs.length)throw new Error('Adres niet gevonden.');
     const d=docs.find(x=>x.type==='adres')||docs[0];
-    const lat=+d.lat,lon=+d.lon;
-    if(!isFinite(lat)||!isFinite(lon))throw new Error('Geen coördinaten gevonden.');
+
+    // PDOK Locatieserver levert coördinaten niet altijd als d.lat/d.lon.
+    // Gebruik daarom eerst centroide_ll en daarna de losse lat/lon velden.
+    function readCoords(x){
+      let c=x.centroide_ll||x.centroide_ll_rd||x.centroid||x.centroide;
+      if(Array.isArray(c) && c.length>=2){
+        const a=+c[0],b=+c[1];
+        // WGS84 is [lon,lat] bij GeoJSON-achtige arrays.
+        if(Math.abs(a)<=180 && Math.abs(b)<=90) return {lon:a,lat:b};
+      }
+      if(typeof c==='string'){
+        const m=c.match(/POINT\\s*\\(\\s*([-\\d.]+)\\s+([-\\d.]+)\\s*\\)/i);
+        if(m){
+          const lon=+m[1],lat=+m[2];
+          if(isFinite(lon)&&isFinite(lat)) return {lon,lat};
+        }
+      }
+      const lat=+(x.lat??x.latitude),lon=+(x.lon??x.longitude);
+      if(isFinite(lat)&&isFinite(lon)) return {lat,lon};
+      return null;
+    }
+
+    const coords=readCoords(d);
+    if(!coords)throw new Error('PDOK gaf geen bruikbare coördinaten terug voor dit adres.');
+    const lat=coords.lat,lon=coords.lon;
     map.setView([lat,lon],19);
 
     setStatus('Exact BAG-pand koppelen…');
