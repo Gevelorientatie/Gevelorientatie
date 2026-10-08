@@ -1,398 +1,153 @@
 <!doctype html>
 <html lang="nl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Geveloriëntatie</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-:root{
-  --blue:#1557c0;--blue2:#eaf2ff;--ink:#17324d;--muted:#6c7b8a;
-  --green:#16a36a;--red:#e34b5f;--orange:#e6a52d;--west:#3578d4;
-}
-*{box-sizing:border-box}
-body{margin:0;background:#f4f7fb;color:var(--ink);font-family:Inter,Arial,sans-serif}
-header{background:#fff;border-bottom:1px solid #dfe7f0;padding:22px 28px 20px}
-.brand{display:flex;align-items:center;gap:12px}
-.house{width:38px;height:38px;border-radius:10px;background:var(--blue2);display:grid;place-items:center;color:var(--blue);font-size:23px}
-h1{margin:0;font-size:28px;line-height:1.1}
-.subtitle{margin:5px 0 0 50px;color:var(--muted);font-size:14px}
-.search{margin-top:18px;display:flex;gap:10px;max-width:1000px}
-.searchbox{position:relative;flex:1}
-.searchbox span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#7d8b99}
-input{width:100%;height:48px;border:1px solid #cbd6e2;border-radius:11px;padding:0 15px 0 42px;font-size:16px;outline:none;background:#fff}
-input:focus{border-color:#6d9bea;box-shadow:0 0 0 3px #eaf2ff}
-button{height:48px;border:0;border-radius:11px;background:var(--blue);color:#fff;padding:0 22px;font-size:15px;font-weight:700;cursor:pointer}
-button:disabled{opacity:.6;cursor:wait}
-#status{margin-top:10px;color:var(--muted);font-size:13px;min-height:18px}
-main{padding:22px 28px 28px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px}
-.card{background:#fff;border:1px solid #dfe7f0;border-radius:16px;box-shadow:0 5px 18px rgba(25,55,90,.06);overflow:hidden}
-#map{height:650px;background:#eef3f7}
-.side{padding:18px}
-.side h2{margin:0 0 14px;font-size:18px}
-.facade{display:flex;gap:11px;align-items:center;padding:12px 0;border-bottom:1px solid #edf1f5}
-.arrow{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;font-size:20px;font-weight:800;flex:none}
-.facade b{display:block;font-size:14px}
-.facade small{display:block;color:var(--muted);margin-top:3px}
-.info{margin-top:16px;padding:12px;border-radius:11px;background:#eef6ff;color:#4e6175;font-size:12px;line-height:1.45}
-.legend{padding:12px 16px;border-top:1px solid #e8edf3;color:#657586;font-size:12px;display:flex;gap:15px;flex-wrap:wrap}
-.dot{display:inline-flex;align-items:center;gap:5px}
-.dot i{width:10px;height:10px;border-radius:50%;display:inline-block}
-.center-height{background:#fff;border:1px solid #d7e0ea;border-radius:12px;padding:8px 12px;text-align:center;box-shadow:0 3px 12px rgba(0,0,0,.12);white-space:nowrap}
-.center-height span{display:block;font-size:11px;color:#6c7b8a}
-.center-height strong{display:block;font-size:22px;color:#17324d;margin-top:1px}
-.fac-label{background:#fff;border-radius:11px;border:2px solid currentColor;padding:7px 10px;box-shadow:0 3px 12px rgba(0,0,0,.12);font-size:12px;font-weight:700;white-space:nowrap}
-.fac-label span{display:block;font-weight:500;color:#657586;margin-top:2px}
-.north{color:var(--green)}.east{color:var(--red)}.south{color:var(--orange)}.west{color:var(--west)}
-.map-note{position:absolute;z-index:500;left:14px;bottom:14px;background:#fff;border:1px solid #dce4ed;border-radius:9px;padding:7px 10px;font-size:11px;color:#657586;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-@media(max-width:900px){main{grid-template-columns:1fr}.side{order:2}#map{height:560px}}
-@media(max-width:600px){header{padding:18px}.subtitle{margin-left:0;margin-top:8px}main{padding:14px}.search{flex-direction:column}.search button{width:100%}}
-</style>
-</head>
+*{box-sizing:border-box}body{margin:0;background:#f4f8fc;color:#123d6d;font-family:Arial,Helvetica,sans-serif}header{max-width:1500px;margin:0 auto;padding:18px 28px 14px;background:#f4f8fc}h1{margin:0 0 6px;font-size:34px;color:#0c3766}.sub{color:#31577f;margin-bottom:16px;font-size:16px}.row{display:flex;gap:18px;max-width:1000px}input{flex:1;height:54px;padding:0 20px;border:1px solid #c7d7e6;border-radius:8px;font-size:17px;background:#fff;box-shadow:0 1px 3px #123d6d12}button{height:54px;padding:0 34px;border:0;border-radius:7px;background:#0873d1;color:#fff;font-size:17px;font-weight:700;cursor:pointer}button:disabled{opacity:.6}#status{margin-top:10px;color:#64748b;min-height:20px}main{max-width:1500px;margin:0 auto;padding:0 28px 20px;display:grid;grid-template-columns:minmax(700px,1fr) 430px;gap:20px}.card{background:#fff;border:1px solid #dce3e9;border-radius:12px;box-shadow:0 2px 10px #0001;overflow:hidden}#drawing{width:100%;height:730px;display:block;background:#f3f0e8}.side{padding:22px 20px}.side h2{margin:0 0 18px;font-size:27px;padding-bottom:18px;border-bottom:1px solid #d8e2eb;color:#0c3766}.side h2 span{font-size:17px}.item{display:flex;align-items:center;gap:18px;padding:17px 0;border-bottom:1px solid #d8e2eb}.arrow{width:58px;height:58px;border-radius:50%;background:#f4f8fc;display:flex;align-items:center;justify-content:center;font-size:31px;font-weight:bold}.small{color:#46698d;margin-top:7px;font-size:16px}.note{margin-top:18px;padding:16px;background:#eaf4ff;border-radius:8px;line-height:1.55;color:#28547f;font-size:15px}.height{margin-top:20px;padding:15px;background:#eef5fb;border-radius:9px;text-align:center}.height .v{font-size:25px;font-weight:700;margin-top:5px}.legend{max-width:1500px;margin:0 auto 20px;padding:14px 28px;display:flex;flex-wrap:wrap;gap:30px;align-items:center;background:#fff;border:1px solid #cddce9;border-radius:8px;color:#123d6d}.legendItem{display:flex;align-items:center;gap:8px;font-size:15px}.legendLine{width:40px;height:9px;border-radius:5px}@media(max-width:1100px){main{grid-template-columns:1fr}#drawing{height:650px}}
+</style></head>
 <body>
-<header>
-  <div class="brand"><div class="house">⌂</div><h1>Geveloriëntatie</h1></div>
-  <div class="subtitle">Bepaal eenvoudig de oriëntatie van de gevels van een pand (BAG) op basis van een adres.</div>
-  <div class="search">
-    <div class="searchbox"><span>⌕</span><input id="address" placeholder="Bijv. Sonsbeeksingel 37, Arnhem"></div>
-    <button id="go">⌕&nbsp; Zoek adres</button>
-  </div>
-  <div id="status"></div>
-</header>
-
-<main>
-  <section class="card" style="position:relative">
-    <div id="map"></div>
-    <div class="map-note">Noordgericht · BAG-gebouw in blauw · omliggende panden in grijs</div>
-    <div class="legend">
-      <span class="dot"><i style="background:#16a36a"></i>Noord</span>
-      <span class="dot"><i style="background:#e34b5f"></i>Oost</span>
-      <span class="dot"><i style="background:#e6a52d"></i>Zuid</span>
-      <span class="dot"><i style="background:#3578d4"></i>West</span>
-      <span id="streetLegend"></span>
-    </div>
-  </section>
-
-  <aside class="card side">
-    <h2>Geveloriëntatie (BAG)</h2>
-    <div id="facades"><div style="color:#6c7b8a;font-size:13px">Zoek eerst een adres.</div></div>
-    <div class="info">
-      <b>Gebouwhoogte</b><br>
-      De hoogte in het midden van het pand is de hoogte van het <b>hele BAG-pand</b>, niet van het afzonderlijke verblijfsobject. De waarde komt uit 3DBAG.
-    </div>
-  </aside>
-</main>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<header><div style="display:flex;align-items:center;gap:14px"><svg width="58" height="58" viewBox="0 0 64 64"><path d="M7 29 L32 6 L57 29" fill="none" stroke="#0873d1" stroke-width="5" stroke-linecap="round"/><path d="M13 27 V57 H51 V27 M25 57 V39 H39 V57" fill="none" stroke="#0873d1" stroke-width="5"/></svg><div><h1>Geveloriëntatie</h1><div class="sub">Bepaal eenvoudig de oriëntatie van de gevels van een pand (BAG) op basis van een adres.</div></div></div><div class="row"><input id="address" placeholder="Bijv. Markt 1, 5701 Helmond"><button id="go">Zoek adres</button></div><div id="status">Vul een adres in. Noord staat altijd bovenaan.</div></header>
+<main><div class="card"><svg id="drawing" viewBox="0 0 1000 730"><rect width="1000" height="730" fill="#f3f0e8"/><g id="grid"></g><g id="road"></g><g id="surroundings"></g><g id="building"></g><g id="labels"></g><g id="north"></g></svg></div>
+<div class="card side"><h2>Geveloriëntatie <span style="font-size:14px;color:#64748b">(BAG)</span></h2><div id="list"><div class="small">Na het zoeken worden de gevelrichtingen hier weergegeven.</div></div><div class="note"><b>De oriëntatie</b> is bepaald op basis van de BAG-geometrie en de positie van het pand.<br><br>De <b>gebouwhoogte</b> is afkomstig uit BAG3D en staat in het midden van het pand.<br><br>De kaart toont de straat en omliggende panden voor een duidelijke ruimtelijke context.</div></div></main><div class="legend"><div class="legendItem"><span style="color:#20a447;font-size:30px">⬆</span> Noord (0°)</div><div class="legendItem"><span style="color:#ef3434;font-size:30px">➡</span> Oost (90°)</div><div class="legendItem"><span style="color:#f2b400;font-size:30px">⬇</span> Zuid (180°)</div><div class="legendItem"><span style="color:#1675d1;font-size:30px">⬅</span> West (270°)</div><div class="legendItem"><span style="width:40px;height:20px;border:3px solid #103e68;background:#d6e8f8;border-radius:3px"></span> Pand (BAG)</div><div class="legendItem"><span style="width:40px;height:20px;background:#aeb8c4;border-radius:3px"></span> Omringend gebouw (BAG)</div></div>
 <script>
-const LOC='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free';
-const LOCATION_API='https://api.pdok.nl/kadaster/location-api/v1/search';
-const BAG='https://api.pdok.nl/kadaster/bag/ogc/v2';
-const BAG_WFS='https://service.pdok.nl/kadaster/bag/wfs/v2_0';
-const BAG3D='https://api.3dbag.nl';
-const BAG3D_WFS='https://data.3dbag.nl/api/BAG3D/wfs';
-
-const map=L.map('map',{zoomControl:true,attributionControl:true}).setView([52.15,5.4],8);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom:20,attribution:'© OpenStreetMap-bijdragers'
-}).addTo(map);
-
-let layers=[];
-const statusEl=document.getElementById('status');
-const btn=document.getElementById('go');
-
-function clearLayers(){layers.forEach(x=>{try{map.removeLayer(x)}catch(_){}});layers=[]}
-function setStatus(s){statusEl.textContent=s}
-function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function norm(a){a%=360;return a<0?a+360:a}
-function compass(d){
-  return ['N','NNO','NO','ONO','O','OZO','ZO','ZZO','Z','ZZW','ZW','WZW','W','WNW','NW','NNW'][Math.round(norm(d)/22.5)%16]
-}
-function dist(a,b){
-  const R=6371000,r=Math.PI/180,p1=a[1]*r,p2=b[1]*r,dp=(b[1]-a[1])*r,dl=(b[0]-a[0])*r;
-  const h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
-  return 2*R*Math.asin(Math.sqrt(h))
-}
-function bearing(a,b){
-  const r=Math.PI/180,p1=a[1]*r,p2=b[1]*r,dl=(b[0]-a[0])*r;
-  const y=Math.sin(dl)*Math.cos(p2);
-  const x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
-  return norm(Math.atan2(y,x)/r)
-}
-function centroid(r){
-  let x=0,y=0,n=r.length-1;
-  for(let i=0;i<n;i++){x+=r[i][0];y+=r[i][1]}
-  return [x/n,y/n]
-}
-function normalizeGeom(g){
-  if(!g)return null;
-  if(g.type==='Polygon')return g.coordinates[0];
-  if(g.type==='MultiPolygon'){
-    let best=null,bestA=-1;
-    for(const p of g.coordinates){
-      const r=p[0];let a=0;
-      for(let i=0;i<r.length-1;i++)a+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];
-      if(Math.abs(a)>bestA){bestA=Math.abs(a);best=r}
-    }
-    return best
+const API='https://api.pdok.nl/kadaster/bag/ogc/v2',LOC='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free',BGT='https://api.pdok.nl/kadaster/bgt/ogc/v1',B3D='https://api.3dbag.nl',NS='http://www.w3.org/2000/svg',$=id=>document.getElementById(id);
+async function getJSON(u){const r=await fetch(u,{headers:{Accept:'application/geo+json, application/json'}});if(!r.ok)throw Error('Server gaf HTTP '+r.status);return r.json()}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function ringOf(g){if(g.type==='Polygon')return g.coordinates[0];if(g.type==='MultiPolygon'){let best=null,aa=-1;for(const p of g.coordinates){const r=p[0];let a=0;for(let i=0;i<r.length-1;i++)a+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];if(Math.abs(a)>aa){aa=Math.abs(a);best=r}}return best}}
+function centroid(r){let x=0,y=0;for(const p of r){x+=p[0];y+=p[1]}return[x/r.length,y/r.length]}
+function hav(a,b){const R=6371000,z=Math.PI/180,p1=a[1]*z,p2=b[1]*z,dp=(b[1]-a[1])*z,dl=(b[0]-a[0])*z,h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function bearing(a,b){const z=Math.PI/180,p1=a[1]*z,p2=b[1]*z,dl=(b[0]-a[0])*z,y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return(Math.atan2(y,x)/z+360)%360}
+function compass(d){return['N','NNO','NO','ONO','O','OZO','ZO','ZZO','Z','ZZW','ZW','WZW','W','WNW','NW','NNW'][Math.round(d/22.5)%16]}
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}function clear(e){while(e.firstChild)e.removeChild(e.firstChild)}
+function near(f,lon,lat){const g=f.geometry;if(!g)return 999;let p;if(g.type==='Point')p=g.coordinates;else if(g.type==='Polygon')p=g.coordinates[0][0];else if(g.type==='MultiPolygon')p=g.coordinates[0][0][0];else if(g.type==='LineString')p=g.coordinates[0];else return 999;return Math.hypot((p[0]-lon)*Math.cos(lat*Math.PI/180),p[1]-lat)}
+function roadCenter(g){if(g.type==='Polygon')return centroid(g.coordinates[0]);if(g.type==='MultiPolygon')return centroid(g.coordinates[0][0]);if(g.type==='LineString')return centroid(g.coordinates);return null}
+function coordFromAny(x){
+  if(!x)return null;
+  if(Array.isArray(x)){
+    if(x.length>=2 && Number.isFinite(Number(x[0])) && Number.isFinite(Number(x[1]))) return {lon:Number(x[0]),lat:Number(x[1])};
+    for(const v of x){const c=coordFromAny(v);if(c)return c;}
   }
-  return null
-}
-function outward(a,b,c){
-  const e=bearing(a,b),p1=norm(e+90),p2=norm(e-90),m=[(a[0]+b[0])/2,(a[1]+b[1])/2];
-  const tc=bearing(m,c);
-  const delta=(x,y)=>Math.abs(((x-y+540)%360)-180);
-  return delta(p1,tc)>delta(p2,tc)?p1:p2
-}
-async function getJson(url){
-  const r=await fetch(url,{cache:'no-store',headers:{'Accept':'application/json'}});
-  if(!r.ok)throw new Error('HTTP '+r.status);
-  return r.json()
-}
-function relationHref(rel){
-  if(!rel)return null;
-  if(typeof rel==='string')return rel;
-  if(Array.isArray(rel))return relationHref(rel[0]);
-  return rel.href||rel.url||rel.id||null
-}
-function normalizePandId(v){
-  let s=String(v||'').trim();
-  if(!s)return null;
-  const m=s.match(/(\\d{16})$/);
-  return m?'NL.IMBAG.Pand.'+m[1]:s.startsWith('NL.IMBAG.Pand.')?s:null
-}
-function findProps(obj){
-  if(!obj||typeof obj!=='object')return {};
-  if(obj.properties&&typeof obj.properties==='object')return obj.properties;
-  if(obj.feature&&obj.feature.properties)return obj.feature.properties;
-  return obj
-}
-function collectNumbers(obj,keys,out=[]){
-  if(obj==null)return out;
-  if(Array.isArray(obj)){for(const x of obj)collectNumbers(x,keys,out);return out}
-  if(typeof obj!=='object')return out;
-  for(const [k,v] of Object.entries(obj)){
-    if(keys.includes(k)&&typeof v==='number'&&isFinite(v))out.push(v);
-    else if(keys.includes(k)&&typeof v==='string'&&isFinite(+v))out.push(+v);
-    if(v&&typeof v==='object')collectNumbers(v,keys,out);
+  if(typeof x==='object'){
+    if(x.coordinates){const c=coordFromAny(x.coordinates);if(c)return c;}
+    if(Number.isFinite(Number(x.lon))&&Number.isFinite(Number(x.lat)))return{lon:Number(x.lon),lat:Number(x.lat)};
+    if(Number.isFinite(Number(x.longitude))&&Number.isFinite(Number(x.latitude)))return{lon:Number(x.longitude),lat:Number(x.latitude)};
+    for(const k of ['geometry','centroide_ll','centroide','point','location']){if(x[k]){const c=coordFromAny(x[k]);if(c)return c;}}
   }
-  return out
+  const str=String(x);
+  let m=str.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+  if(m)return{lon:+m[1],lat:+m[2]};
+  return null;
 }
-
-async function findPandFromAddress(lat,lon,d){
-  const pad=.00055;
-  const au=BAG+'/collections/adres/items?f=json&limit=100&bbox='+[lon-pad,lat-pad,lon+pad].join(',');
-  const aj=await getJson(au);
-  const afs=aj.features||[];
-  const huis=String(d.huisnummer||'');
-  const pc=String(d.postcode||'').replace(/\\s/g,'').toUpperCase();
-  let af=afs.find(f=>{
-    const p=f.properties||{};
-    return String(p.huisnummer||'')===huis &&
-      (!pc||String(p.postcode||'').replace(/\\s/g,'').toUpperCase()===pc)
-  });
-  if(!af)af=afs.sort((a,b)=>{
-    const aa=a.geometry?.coordinates||[0,0],bb=b.geometry?.coordinates||[0,0];
-    return dist(aa,[lon,lat])-dist(bb,[lon,lat])
-  })[0];
-  if(!af)throw new Error('Geen BAG-adresobject gevonden.');
-  const ap=af.properties||{};
-  const vboId=ap.adresseerbaar_object_identificatie;
-  if(!vboId)throw new Error('BAG-adres heeft geen verblijfsobject-ID.');
-  const vj=await getJson(BAG+'/collections/verblijfsobject/items?f=json&limit=10&identificatie='+encodeURIComponent(vboId));
-  const vf=vj.features?.[0];
-  if(!vf)throw new Error('BAG-verblijfsobject niet gevonden.');
-  const vp=vf.properties||{};
-  const rel=relationHref(vp.pand);
-  if(!rel)throw new Error('Geen gekoppeld BAG-pand gevonden.');
-  const pj=rel.startsWith('http')?await getJson(rel):await getJson(BAG+'/collections/pand/items/'+encodeURIComponent(rel)+'?f=json');
-  return pj
+async function findAddress(q){
+  // Gebruik de stabiele PDOK Locatieserver Free API zonder fq-filter.
+  // De vorige fq=type:adres-aanroep gaf op sommige momenten HTTP 400.
+  const u=LOC+'?q='+encodeURIComponent(q)+'&rows=10';
+  const j=await getJSON(u);
+  const ds=j.response?.docs||j.features||[];
+  if(!ds.length)throw Error('Adres niet gevonden.');
+  const d=ds.find(x=>x.bron==='BAG'&&x.type==='adres')||ds.find(x=>x.type==='adres')||ds[0];
+  const c=coordFromAny(d.centroide_ll)||coordFromAny(d.centroide)||coordFromAny(d.geometry)||coordFromAny(d);
+  if(!c)throw Error('PDOK vond het adres, maar gaf geen bruikbare coördinaten terug.');
+  return{lon:c.lon,lat:c.lat,label:d.weergavenaam||d.label||q,street:d.straatnaam||d.openbare_ruimte||d.straat||''};
 }
-
-async function getWholeBuildingHeight(pandId){
-  const id=normalizePandId(pandId);
-  if(!id)throw new Error('Ongeldige BAG pand-identificatie.');
-  const url=BAG3D+'/collections/pand/items/'+encodeURIComponent(id);
-  try{
-    const j=await getJson(url);
-    const roof=collectNumbers(j,['b3_h_max','b3_h_dak_max','b3_h_70p','b3_h_dak_70p']);
-    const ground=collectNumbers(j,['b3_h_maaiveld']);
-    if(roof.length&&ground.length){
-      const h=Math.max(...roof)-ground[0];
-      if(isFinite(h)&&h>0&&h<200)return h
-    }
-    const p=findProps(j);
-    const r=['b3_h_max','b3_h_dak_max','b3_h_70p','b3_h_dak_70p'].map(k=>+p[k]).filter(Number.isFinite);
-    const g=+p.b3_h_maaiveld;
-    if(r.length&&Number.isFinite(g)){
-      const h=Math.max(...r)-g;
-      if(h>0&&h<200)return h
-    }
-  }catch(_){}
-  // Tweede route via de officiële 3DBAG WFS, exact gefilterd op dezelfde BAG-identificatie.
-  const filter='<Filter><PropertyIsEqualTo><PropertyName>identificatie</PropertyName><Literal>'+esc(id)+'</Literal></PropertyIsEqualTo></Filter>';
-  const u=BAG3D_WFS+'?request=GetFeature&service=WFS&version=2.0.0&typenames=BAG3D:lod22&outputFormat=application/json&filter='+encodeURIComponent(filter);
-  try{
-    const j=await getJson(u);
-    const roof=collectNumbers(j,['b3_h_max','b3_h_dak_max','b3_h_70p','b3_h_dak_70p']);
-    const ground=collectNumbers(j,['b3_h_maaiveld']);
-    if(roof.length&&ground.length){
-      const h=Math.max(...roof)-ground[0];
-      if(h>0&&h<200)return h
-    }
-  }catch(_){}
-  return null
+function pointInRing(pt,ring){let inside=false,x=pt[0],y=pt[1];for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];const hit=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi);if(hit)inside=!inside;}return inside}
+function containsPoint(f,lon,lat){const g=f?.geometry;if(!g)return false;if(g.type==='Polygon')return pointInRing([lon,lat],g.coordinates[0]);if(g.type==='MultiPolygon')return g.coordinates.some(p=>pointInRing([lon,lat],p[0]));return false}
+function relationHref(v){
+  if(!v)return null;
+  if(typeof v==='string')return v;
+  if(Array.isArray(v)){for(const x of v){const h=relationHref(x);if(h)return h;}}
+  if(typeof v==='object')return v.href||v.url||v.uri||v.id||null;
+  return null;
 }
-
-function addCompass(){
-  const c=L.control({position:'topright'});
-  c.onAdd=function(){
-    const d=L.DomUtil.create('div');
-    d.style.cssText='width:54px;height:54px;border-radius:50%;background:#fff;border:1px solid #d7e0ea;box-shadow:0 2px 8px rgba(0,0,0,.12);display:grid;place-items:center;font-weight:800;color:#17324d;position:relative';
-    d.innerHTML='<span style="position:absolute;top:3px;font-size:12px">N</span><span style="font-size:24px;color:#1557c0;transform:translateY(3px)">▲</span>';
-    return d
+async function findPand(lon,lat){
+  const d=.00045,b=[lon-d,lat-d,lon+d,lat+d].join(','),v=await getJSON(API+'/collections/verblijfsobject/items?bbox='+b+'&limit=100');
+  const vbos=v.features||[];
+  // Eerst proberen we de BAG-relatie van het verblijfsobject naar het pand.
+  for(const f of vbos.sort((a,b)=>near(a,lon,lat)-near(b,lon,lat))){
+    const pr=f.properties||{};
+    const rel=relationHref(pr.pand)||relationHref(pr.pand_identificatie)||relationHref(pr.pand_id);
+    if(rel){
+      try{
+        const href=String(rel);
+        if(href.startsWith('http'))return await getJSON(href);
+        const id=href.replace(/^NL\.IMBAG\.Pand\./,'').replace(/[^0-9]/g,'');
+        if(id){const x=await getJSON(API+'/collections/pand/items/'+encodeURIComponent(id));if(x)return x;}
+      }catch(e){console.warn('BAG pand-relatie mislukt',e)}
+    }
+  }
+  // Fallback: zoek het pand waarvan de adrescoördinaat daadwerkelijk binnen de geometrie ligt.
+  const p=await getJSON(API+'/collections/pand/items?bbox='+b+'&limit=200');
+  const fs=p.features||[];
+  const inside=fs.filter(f=>containsPoint(f,lon,lat));
+  if(inside.length)return inside.sort((a,b)=>near(a,lon,lat)-near(b,lon,lat))[0];
+  const f=fs.sort((a,b)=>near(a,lon,lat)-near(b,lon,lat))[0];
+  if(!f)throw Error('Geen BAG-pand gevonden.');
+  return f;
+}
+async function findBuildings(lon,lat){try{const d=.00125,b=[lon-d,lat-d,lon+d,lat+d].join(','),j=await getJSON(API+'/collections/pand/items?bbox='+b+'&limit=500');return j.features||[]}catch(e){console.warn('BAG omliggende panden',e);return[]}}
+async function findRoad(lon,lat){try{const d=.0018,b=[lon-d,lat-d,lon+d,lat+d].join(','),j=await getJSON(BGT+'/collections/wegdeel/items?bbox='+b+'&limit=1000');return(j.features||[]).filter(f=>{const fn=String(f.properties?.functie||'').toLowerCase();return !['inrit','parkeervlak','voetpad','voetpad op trap','ruiterpad'].includes(fn)})}catch(e){console.warn('BGT straat',e);return[]}}
+async function findHeight(pandId,lon,lat){
+  // 3DBAG gebruikt dezelfde unieke BAG-pandidentificatie als sleutel.
+  // We zoeken eerst exact op identificatie; alleen een exact gematcht pand
+  // mag de hoogte van het doelpand leveren. Zo voorkomen we dat de hoogte
+  // van een buurgebouw wordt gebruikt.
+  const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
+  const getH=p=>{
+    if(!p)return null;
+    const ground=num(p.b3_h_maaiveld);
+    const roofCandidates=[p.b3_h_max,p.b3_h_dak_max,p.b3_h_70p,p.b3_h_dak_70p];
+    if(ground!=null){
+      for(const rv of roofCandidates){
+        const roof=num(rv);
+        if(roof!=null)return Math.max(0,roof-ground);
+      }
+    }
+    return null;
   };
-  c.addTo(map)
-}
-addCompass();
-
-async function search(){
-  btn.disabled=true;clearLayers();document.getElementById('facades').innerHTML='<div style="color:#6c7b8a;font-size:13px">Bezig…</div>';document.getElementById('streetLegend').textContent='';
+  const norm=v=>String(v??'').replace(/^https?:\/\/[^/]+\/collections\/pand\/items\//,'').replace(/^NL\.IMBAG\.Pand\./,'').replace(/[^0-9]/g,'');
+  const wanted=norm(pandId);
   try{
-    const q=document.getElementById('address').value.trim();
-    if(!q)throw new Error('Vul eerst een adres in.');
-    setStatus('Adres zoeken…');
-
-    // Nieuwe PDOK Location API: levert een GeoJSON-feature met echte geometry.
-    // Oude Locatieserver blijft als fallback aanwezig.
-    function readCoords(x){
-      if(!x)return null;
-      const g=x.geometry||x.geometrie||x.location?.geometry;
-      if(g?.type==='Point' && Array.isArray(g.coordinates) && g.coordinates.length>=2){
-        const lon=+g.coordinates[0],lat=+g.coordinates[1];
-        if(isFinite(lon)&&isFinite(lat)&&Math.abs(lon)<=180&&Math.abs(lat)<=90)return {lon,lat};
-      }
-      let c=x.centroide_ll||x.centroide_ll_rd||x.centroid||x.centroide||x.geometrie_ll||x.point;
-      if(Array.isArray(c) && c.length>=2){
-        const a=+c[0],b=+c[1];
-        if(Math.abs(a)<=180&&Math.abs(b)<=90)return {lon:a,lat:b};
-      }
-      if(typeof c==='string'){
-        const m=c.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
-        if(m){
-          const lon=+m[1],lat=+m[2];
-          if(isFinite(lon)&&isFinite(lat)&&Math.abs(lon)<=180&&Math.abs(lat)<=90)return {lon,lat};
-        }
-      }
-      const lat=+(x.lat??x.latitude),lon=+(x.lon??x.longitude);
-      if(isFinite(lat)&&isFinite(lon)&&Math.abs(lon)<=180&&Math.abs(lat)<=90)return {lat,lon};
-      return null;
+    // De directe API-route is de officiële 3DBAG-manier om één BAG-pand
+    // op te vragen. Eerst proberen we de volledige BAG-identificatie.
+    const full=wanted?'NL.IMBAG.Pand.'+wanted:'';
+    if(full){
+      try{
+        const j=await getJSON(B3D+'/collections/pand/items/'+encodeURIComponent(full));
+        const p=j.feature?.properties||j.properties||j.features?.[0]?.properties||{};
+        const h=getH(p);
+        if(h!=null)return h;
+      }catch(e){console.warn('3DBAG directe pand-opvraag mislukt',e)}
     }
 
-    let d=null,coords=null;
-    try{
-      const loc=await getJson(LOCATION_API+'?q='+encodeURIComponent(q)+'&collections=adres&limit=10&f=json');
-      const fs=loc.features||loc.results||[];
-      if(fs.length){
-        const f=fs[0];
-        d={...(f.properties||{}),...f};
-        coords=readCoords(f);
+    // Tweede, betrouwbare route: haal een kleine 3DBAG-set rond het adres op
+    // en neem uitsluitend een feature waarvan de BAG-identificatie exact matcht.
+    const d=.00035,b=[lon-d,lat-d,lon+d,lat+d].join(',');
+    const j=await getJSON(B3D+'/collections/pand/items?bbox='+b+'&limit=100');
+    const fs=j.features||[];
+    for(const f of fs){
+      const p=f.properties||{};
+      const ids=[p.identificatie,p.identification,p.bag_identificatie,p.bag_id,f.id];
+      if(ids.some(x=>norm(x)===wanted)){
+        const h=getH(p);
+        if(h!=null)return h;
       }
-    }catch(_){ }
-
-    if(!coords){
-      const geo=await getJson(LOC+'?q='+encodeURIComponent(q)+'&rows=10');
-      const docs=geo.response?.docs||[];
-      if(!docs.length)throw new Error('Adres niet gevonden.');
-      d=docs.find(x=>x.type==='adres')||docs[0];
-      coords=readCoords(d);
     }
-    if(!coords)throw new Error('PDOK gaf geen bruikbare coördinaten terug voor dit adres.');
-    const lat=coords.lat,lon=coords.lon;
-    map.setView([lat,lon],19);
-
-    setStatus('Exact BAG-pand koppelen…');
-    const pand=await findPandFromAddress(lat,lon,d);
-    const pp=pand.properties||{};
-    const ring=normalizeGeom(pand.geometry);
-    if(!ring||ring.length<4)throw new Error('Geen BAG-gebouwcontour gevonden.');
-    const pandId=pp.identificatie;
-    if(!pandId)throw new Error('BAG-pandidentificatie ontbreekt.');
-
-    // Omliggende BAG-panden
-    setStatus('Kaart en gevels opbouwen…');
-    const pad=.00115;
-    const wfs=BAG_WFS+'?service=WFS&version=2.0.0&request=GetFeature&typeNames=bag:pand&count=250&srsName=EPSG:4326&outputFormat=application/json&bbox='+[lon-pad,lat-pad,lon+pad,lat+pad].join(',')+',EPSG:4326';
-    try{
-      const fc=await getJson(wfs);
-      for(const f of (fc.features||[])){
-        const r=normalizeGeom(f.geometry);if(!r)continue;
-        const id=f.properties?.identificatie;
-        const isMain=id===pandId;
-        const p=L.polygon(r.map(x=>[x[1],x[0]]),{
-          color:isMain?'#1557c0':'#aeb8c3',weight:isMain?4:1,fillColor:isMain?'#b9d8ff':'#dfe4e9',
-          fillOpacity:isMain?.9:.7,interactive:false
-        }).addTo(map);layers.push(p)
-      }
-    }catch(_){
-      const p=L.polygon(ring.map(x=>[x[1],x[0]]),{color:'#1557c0',weight:4,fillColor:'#b9d8ff',fillOpacity:.9}).addTo(map);layers.push(p)
-    }
-
-    // Adrespunt
-    const m=L.circleMarker([lat,lon],{radius:5,color:'#17324d',weight:2,fillColor:'#fff',fillOpacity:1}).addTo(map);layers.push(m);
-
-    const cen=centroid(ring);
-    const seg=[];
-    for(let i=0;i<ring.length-1;i++){
-      const a=ring[i],b=ring[i+1],len=dist(a,b);
-      if(len<.6)continue;
-      const deg=outward(a,b,cen);
-      seg.push({a,b,len,deg})
-    }
-    seg.sort((a,b)=>b.len-a.len);
-
-    // Fit kaart strak rond het pand, maar laat ruimte voor labels.
-    const bounds=L.latLngBounds(ring.map(p=>[p[1],p[0]]));
-    map.fitBounds(bounds.pad(.75),{animate:false});
-
-    // Gevellabels en pijlen
-    const facades=document.getElementById('facades');
-    const colors=[
-      {test:d=>d<45||d>=315,cls:'north',c:'#16a36a',arrow:'↑',name:'Noord'},
-      {test:d=>d>=45&&d<135,cls:'east',c:'#e34b5f',arrow:'→',name:'Oost'},
-      {test:d=>d>=135&&d<225,cls:'south',c:'#e6a52d',arrow:'↓',name:'Zuid'},
-      {test:d=>d>=225&&d<315,cls:'west',c:'#3578d4',arrow:'←',name:'West'}
-    ];
-    const rows=[];
-    for(const s of seg){
-      const mid=[(s.a[0]+s.b[0])/2,(s.a[1]+s.b[1])/2];
-      const typ=colors.find(x=>x.test(s.deg));
-      const html='<div class="fac-label '+typ.cls+'"><b>'+Math.round(s.deg)+'° ('+typ.name[0]+')</b><span>Gevelbreedte: '+s.len.toFixed(1)+' m</span></div>';
-      const icon=L.divIcon({className:'',html,iconSize:[0,0],iconAnchor:[0,0]});
-      const lab=L.marker([mid[1],mid[0]],{icon,interactive:false}).addTo(map);layers.push(lab);
-      rows.push({typ,s})
-    }
-
-    facades.innerHTML=rows.map(x=>'<div class="facade"><div class="arrow" style="background:'+x.typ.c+'">'+x.typ.arrow+'</div><div><b>'+x.typ.name+' ('+Math.round(x.s.deg)+'°)</b><small>Gevelbreedte: '+x.s.len.toFixed(1)+' m</small></div></div>').join('');
-
-    const street=d.openbare_ruimte_naam||d.straatnaam||'';
-    document.getElementById('streetLegend').textContent=street?'· '+esc(street):'';
-
-    // Exacte hele-pand hoogte: pas na de kaart, zodat de kaart al zichtbaar is.
-    setStatus('Hele pandhoogte uit 3DBAG ophalen…');
-    const height=await getWholeBuildingHeight(pandId);
-    const heightText=height?height.toFixed(1).replace('.',',')+' m':'n.b.';
-    const hi=L.marker([cen[1],cen[0]],{icon:L.divIcon({className:'',html:'<div class="center-height"><span>Hoogte (BAG3D)</span><strong>'+heightText+'</strong></div>',iconSize:[0,0],iconAnchor:[0,0]}),interactive:false}).addTo(map);layers.push(hi);
-
-    setStatus('Klaar · '+(d.weergavenaam||q)+' · BAG-pand '+pandId+(height?' · hele pandhoogte '+height.toFixed(1)+' m':' · BAG3D-hoogte niet beschikbaar'));
+    // Geen exacte match = geen hoogte tonen. Nooit de hoogte van een ander pand gebruiken.
+    return null;
   }catch(e){
-    console.error(e);
-    setStatus('Fout: '+e.message);
-    document.getElementById('facades').innerHTML='<div style="color:#b42318;font-size:13px">'+esc(e.message)+'</div>';
-  }finally{btn.disabled=false}
+    console.warn('3DBAG hoogte',e);
+    return null;
+  }
 }
-btn.onclick=search;
-document.getElementById('address').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
-</script>
-</body>
-</html>
+function nearestSegment(r,p){let best={i:0,d:Infinity,q:r[0]};for(let i=0;i<r.length-1;i++){const a=r[i],b=r[i+1],dx=b[0]-a[0],dy=b[1]-a[1],den=dx*dx+dy*dy||1;let t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/den;t=Math.max(0,Math.min(1,t));const q=[a[0]+t*dx,a[1]+t*dy],d=Math.hypot((q[0]-p[0])*Math.cos(p[1]*Math.PI/180),q[1]-p[1]);if(d<best.d)best={i,d,q}}return best}
+function render(r,a,roadFeatures,height,allBuildings){const W=1000,H=730,mc=centroid(r),mLat=111320,mLon=111320*Math.cos(a.lat*Math.PI/180),vw=78,vh=56,minx=mc[0]-vw/2/mLon,maxx=mc[0]+vw/2/mLon,miny=mc[1]-vh/2/mLat,maxy=mc[1]+vh/2/mLat,sc=Math.min(W/vw,H/vh),tx=x=>(x-minx)*mLon*sc,ty=y=>H-(y-miny)*mLat*sc,gr=$('grid'),ro=$('road'),su=$('surroundings'),bd=$('building'),la=$('labels'),no=$('north');[gr,ro,su,bd,la,no].forEach(clear);for(let x=0;x<=W;x+=55)el('line',{x1:x,y1:0,x2:x,y2:H,stroke:'#e4e0d8'},gr);for(let y=0;y<=H;y+=55)el('line',{x1:0,y1:y,x2:W,y2:y,stroke:'#e4e0d8'},gr);
+if((allBuildings||[]).length){for(const f of allBuildings){const id=String(f.properties?.identificatie||f.id||'');if(id===String(window.__targetPandId||''))continue;const rr=ringOf(f.geometry);if(!rr)continue;const cc=centroid(rr);if(cc[0]<minx||cc[0]>maxx||cc[1]<miny||cc[1]>maxy)continue;el('polygon',{points:rr.map(q=>tx(q[0])+','+ty(q[1])).join(' '),fill:'#aeb8c4',stroke:'#919eab','stroke-width':1.5,opacity:.92},su)}}
+if((roadFeatures||[]).length){let labelPoint=null,best=Infinity;for(const rd of roadFeatures){let parts=[];if(rd.geometry?.type==='Polygon')parts=[rd.geometry.coordinates[0]];else if(rd.geometry?.type==='MultiPolygon')parts=rd.geometry.coordinates.map(x=>x[0]);else if(rd.geometry?.type==='LineString')parts=[rd.geometry.coordinates];for(const rr of parts){el('polygon',{points:rr.map(q=>tx(q[0])+','+ty(q[1])).join(' '),fill:'#b8c2cd',stroke:'#9ca8b4','stroke-width':1.5},ro);const cc=centroid(rr),dd=Math.hypot((cc[0]-a.lon)*111320*Math.cos(a.lat*Math.PI/180),(cc[1]-a.lat)*111320);if(dd<best){best=dd;labelPoint=cc}}}if(labelPoint){const rt=el('text',{x:tx(labelPoint[0]),y:ty(labelPoint[1])+8,'text-anchor':'middle','font-size':26,'font-weight':'bold',fill:'#173f69'},ro);rt.textContent=a.street||'Straat'}}
+el('polygon',{points:r.map(q=>tx(q[0])+','+ty(q[1])).join(' '),fill:'#d9e8f7',stroke:'#103e68','stroke-width':6},bd);const c=centroid(r),cx=tx(c[0]),cy=ty(c[1]);el('rect',{x:cx-110,y:cy-30,width:220,height:60,rx:10,fill:'#fff',stroke:'#4d88bd','stroke-width':2},bd);const ht=el('text',{x:cx,y:cy+7,'text-anchor':'middle',fill:'#17324d','font-size':20,'font-weight':'bold'},bd);ht.textContent='BAG3D hoogte:';const hv=el('text',{x:cx,y:cy+28,'text-anchor':'middle',fill:'#123d6d','font-size':22,'font-weight':'700'},bd);hv.textContent=height!=null?height.toFixed(1).replace('.',',')+' m':'n.b.';
+el('circle',{cx:930,cy:70,r:42,fill:'#fff',stroke:'#cbd5df','stroke-width':2},no);el('path',{d:'M930 25 L913 82 L930 70 L947 82 Z',fill:'#1769aa'},no);const nt=el('text',{x:930,y:18,'text-anchor':'middle','font-size':18,'font-weight':'bold',fill:'#17324d'},no);nt.textContent='N';
+let rows=[];for(let i=0;i<r.length-1;i++){const a1=r[i],b=r[i+1],len=hav(a1,b);if(len<.5)continue;const m=[(a1[0]+b[0])/2,(a1[1]+b[1])/2],dx=b[0]-a1[0],dy=b[1]-a1[1],ep=.00006,n1=[m[0]-dy*ep,m[1]+dx*ep],n2=[m[0]+dy*ep,m[1]-dx*ep],d1=Math.hypot((n1[0]-c[0])*Math.cos(a.lat*Math.PI/180),n1[1]-c[1]),d2=Math.hypot((n2[0]-c[0])*Math.cos(a.lat*Math.PI/180),n2[1]-c[1]),out=d1>d2?n1:n2,deg=bearing(m,out),col=deg<45||deg>=315?'#22a447':deg<135?'#e53935':deg<225?'#f2b705':'#1769aa',mx=tx(m[0]),my=ty(m[1]),vx=tx(out[0])-mx,vy=ty(out[1])-my,L=Math.hypot(vx,vy)||1,ux=vx/L,uy=vy/L,ex=mx+ux*85,ey=my+uy*85;el('line',{x1:mx,y1:my,x2:ex,y2:ey,stroke:col,'stroke-width':8,'stroke-linecap':'round'},la);el('polygon',{points:`${ex},${ey} ${ex-ux*16-uy*12},${ey-uy*16+ux*12} ${ex-ux*16+uy*12},${ey-uy*16-ux*12}`,fill:col},la);const g=el('g',{},la);el('rect',{x:ex+ux*10-58,y:ey+uy*10-25,width:116,height:50,rx:8,fill:'#fff',stroke:col,'stroke-width':3},g);const t=el('text',{x:ex+ux*10,y:ey+uy*10-3,'text-anchor':'middle','font-size':15,'font-weight':'bold',fill:col},g);t.textContent=Math.round(deg)+'° ('+compass(deg)+')';const t2=el('text',{x:ex+ux*10,y:ey+uy*10+17,'text-anchor':'middle','font-size':13,fill:'#334155'},g);t2.textContent=len.toFixed(1)+' m';rows.push({deg,len,dir:compass(deg),col})}
+rows.sort((a,b)=>a.deg-b.deg);$('list').innerHTML=rows.map(x=>`<div class="item"><div class="arrow" style="color:${x.col}">↑</div><div><b>${Math.round(x.deg)}° (${x.dir})</b><div class="small">Gevelbreedte: ${x.len.toFixed(1)} m</div></div></div>`).join('');}
+async function search(){const b=$('go');b.disabled=true;try{const q=$('address').value.trim();if(!q)throw Error('Vul eerst een adres in.');$('status').textContent='Adres zoeken via PDOK…';const a=await findAddress(q);$('status').textContent='BAG-pand en straat ophalen…';const p=await findPand(a.lon,a.lat),r=ringOf(p.geometry);if(!r||r.length<4)throw Error('Geen bruikbare BAG-pandgeometrie gevonden.');window.__targetPandId=p.properties?.identificatie||p.id;const [roadFeatures,allBuildings]=await Promise.all([findRoad(a.lon,a.lat),findBuildings(a.lon,a.lat)]);$('status').textContent='BAG3D-hoogte ophalen…';const id=window.__targetPandId,height=await findHeight(id,a.lon,a.lat);render(r,a,roadFeatures,height,allBuildings);$('status').textContent='Klaar. Noord staat bovenaan; straat en omliggende panden zijn weergegeven.'}catch(e){console.error(e);$('status').textContent='Fout: '+e.message}finally{b.disabled=false}}
+$('go').onclick=search;$('address').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
+</script></body></html>
