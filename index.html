@@ -9,7 +9,7 @@
 <body>
 <header><div style="display:flex;align-items:center;gap:14px"><svg width="58" height="58" viewBox="0 0 64 64"><path d="M7 29 L32 6 L57 29" fill="none" stroke="#0873d1" stroke-width="5" stroke-linecap="round"/><path d="M13 27 V57 H51 V27 M25 57 V39 H39 V57" fill="none" stroke="#0873d1" stroke-width="5"/></svg><div><h1>Geveloriëntatie</h1><div class="sub">Bepaal eenvoudig de oriëntatie van de gevels van een pand (BAG) op basis van een adres.</div></div></div><div class="row"><input id="address" placeholder="Bijv. Markt 1, 5701 Helmond"><button id="go">Zoek adres</button></div><div id="status">Vul een adres in. Noord staat altijd bovenaan.</div></header>
 <main><div class="card"><svg id="drawing" viewBox="0 0 1000 730"><rect width="1000" height="730" fill="#f3f0e8"/><g id="grid"></g><g id="road"></g><g id="surroundings"></g><g id="building"></g><g id="labels"></g><g id="north"></g></svg></div>
-<div class="card side"><h2>Geveloriëntatie <span style="font-size:14px;color:#64748b">(BAG)</span></h2><div id="list"><div class="small">Na het zoeken worden de gevelrichtingen hier weergegeven.</div></div><div class="note"><b>De oriëntatie</b> is bepaald op basis van de BAG-geometrie en de positie van het pand.<br><br>De <b>gebouwhoogte</b> is afkomstig uit BAG3D en staat in het midden van het pand.<br><br>De kaart toont de straat en omliggende panden voor een duidelijke ruimtelijke context.</div></div></main><div class="legend"><div class="legendItem"><span style="color:#20a447;font-size:30px">⬆</span> Noord (0°)</div><div class="legendItem"><span style="color:#ef3434;font-size:30px">➡</span> Oost (90°)</div><div class="legendItem"><span style="color:#f2b400;font-size:30px">⬇</span> Zuid (180°)</div><div class="legendItem"><span style="color:#1675d1;font-size:30px">⬅</span> West (270°)</div><div class="legendItem"><span style="width:40px;height:20px;border:3px solid #103e68;background:#d6e8f8;border-radius:3px"></span> Pand (BAG)</div><div class="legendItem"><span style="width:40px;height:20px;background:#aeb8c4;border-radius:3px"></span> Omringend gebouw (BAG)</div></div>
+<div class="card side"><h2>Geveloriëntatie <span style="font-size:14px;color:#64748b">(BAG)</span></h2><div id="list"><div class="small">Na het zoeken worden de gevelrichtingen hier weergegeven.</div></div><div class="note"><b>De oriëntatie</b> is bepaald op basis van de BAG-geometrie en de positie van het pand.<br><br>De <b>gebouwhoogte</b> is afkomstig uit het exacte BAG-pand in 3DBAG en staat in het midden van het pand.<br><br>De kaart toont de straat en omliggende panden voor een duidelijke ruimtelijke context.</div></div></main><div class="legend"><div class="legendItem"><span style="color:#20a447;font-size:30px">⬆</span> Noord (0°)</div><div class="legendItem"><span style="color:#ef3434;font-size:30px">➡</span> Oost (90°)</div><div class="legendItem"><span style="color:#f2b400;font-size:30px">⬇</span> Zuid (180°)</div><div class="legendItem"><span style="color:#1675d1;font-size:30px">⬅</span> West (270°)</div><div class="legendItem"><span style="width:40px;height:20px;border:3px solid #103e68;background:#d6e8f8;border-radius:3px"></span> Pand (BAG)</div><div class="legendItem"><span style="width:40px;height:20px;background:#aeb8c4;border-radius:3px"></span> Omringend gebouw (BAG)</div></div>
 <script>
 const API='https://api.pdok.nl/kadaster/bag/ogc/v2',LOC='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free',BGT='https://api.pdok.nl/kadaster/bgt/ogc/v1',B3D='https://api.3dbag.nl',NS='http://www.w3.org/2000/svg',$=id=>document.getElementById(id);
 async function getJSON(u){const r=await fetch(u,{headers:{Accept:'application/geo+json, application/json'}});if(!r.ok)throw Error('Server gaf HTTP '+r.status);return r.json()}
@@ -27,52 +27,86 @@ async function findPand(lon,lat){const d=.00035,b=[lon-d,lat-d,lon+d,lat+d].join
 async function findBuildings(lon,lat){try{const d=.00125,b=[lon-d,lat-d,lon+d,lat+d].join(','),j=await getJSON(API+'/collections/pand/items?bbox='+b+'&limit=500');return j.features||[]}catch(e){console.warn('BAG omliggende panden',e);return[]}}
 async function findRoad(lon,lat){try{const d=.0018,b=[lon-d,lat-d,lon+d,lat+d].join(','),j=await getJSON(BGT+'/collections/wegdeel/items?bbox='+b+'&limit=1000');return(j.features||[]).filter(f=>{const fn=String(f.properties?.functie||'').toLowerCase();return !['inrit','parkeervlak','voetpad','voetpad op trap','ruiterpad'].includes(fn)})}catch(e){console.warn('BGT straat',e);return[]}}
 async function findHeight(pandId,lon,lat){
-  // 3DBAG gebruikt dezelfde unieke BAG-pandidentificatie als sleutel.
-  // We zoeken eerst exact op identificatie; alleen een exact gematcht pand
-  // mag de hoogte van het doelpand leveren. Zo voorkomen we dat de hoogte
-  // van een buurgebouw wordt gebruikt.
-  const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
-  const getH=p=>{
-    if(!p)return null;
-    const ground=num(p.b3_h_maaiveld);
-    const roofCandidates=[p.b3_h_max,p.b3_h_dak_max,p.b3_h_70p,p.b3_h_dak_70p];
-    if(ground!=null){
-      for(const rv of roofCandidates){
-        const roof=num(rv);
-        if(roof!=null)return Math.max(0,roof-ground);
-      }
+  // Gebruik uitsluitend het exacte BAG-pand in 3DBAG.
+  // De 3DBAG documentatie geeft aan dat de identificatie van een pand
+  // dezelfde BAG-identificatie is. Voor een vaste gebouwhoogte gebruiken
+  // we eerst de 70e percentielhoogte (de standaard extrusiehoogte in
+  // LoD1.2/LoD1.3), daarna max als fallback. Alle hoogtes zijn NAP;
+  // maaiveld wordt eraf gehaald.
+  const num=v=>{
+    if(v==null)return null;
+    if(Array.isArray(v)){
+      const vals=v.map(num).filter(x=>x!=null);
+      return vals.length?Math.max(...vals):null;
+    }
+    const n=Number(v);
+    return Number.isFinite(n)?n:null;
+  };
+  const norm=v=>String(v??'')
+    .replace(/^https?:\/\/[^/]+\/collections\/pand\/items\//,'')
+    .replace(/^NL\.IMBAG\.Pand\./,'')
+    .replace(/[^0-9]/g,'');
+  const wanted=norm(pandId);
+
+  function exactProps(j){
+    const candidates=[];
+    if(j?.feature?.properties)candidates.push(j.feature.properties);
+    if(j?.properties)candidates.push(j.properties);
+    if(j?.feature?.attributes)candidates.push(j.feature.attributes);
+    for(const p of candidates){
+      const ids=[p.identificatie,p.identification,p.bag_identificatie,p.bag_id];
+      const hasId=ids.some(x=>norm(x)===wanted);
+      if(hasId || !ids.some(Boolean)) return p;
     }
     return null;
-  };
-  const norm=v=>String(v??'').replace(/^https?:\/\/[^/]+\/collections\/pand\/items\//,'').replace(/^NL\.IMBAG\.Pand\./,'').replace(/[^0-9]/g,'');
-  const wanted=norm(pandId);
+  }
+
+  function heightFrom(p){
+    if(!p)return null;
+    const ground=num(p.b3_h_maaiveld ?? p.h_maaiveld);
+    if(ground==null)return null;
+    // 3DBAG gebruikt b3_h_70p voor de 70e percentiel dakhoogte.
+    // Dit sluit aan bij de hoogte die voor de LoD1-extrusie wordt gebruikt.
+    const roofs=[
+      p.b3_h_70p,p.b3_h_dak_70p,
+      p.b3_h_max,p.b3_h_dak_max,
+      p.b3_h_50p,p.b3_h_dak_50p
+    ];
+    for(const rv of roofs){
+      const roof=num(rv);
+      if(roof!=null && roof>=ground-1)return Math.max(0,roof-ground);
+    }
+    return null;
+  }
+
   try{
-    // De directe API-route is de officiële 3DBAG-manier om één BAG-pand
-    // op te vragen. Eerst proberen we de volledige BAG-identificatie.
-    const full=wanted?'NL.IMBAG.Pand.'+wanted:'';
-    if(full){
+    const ids=[
+      wanted?'NL.IMBAG.Pand.'+wanted:null,
+      wanted||null
+    ].filter(Boolean);
+
+    for(const id of ids){
       try{
-        const j=await getJSON(B3D+'/collections/pand/items/'+encodeURIComponent(full));
-        const p=j.feature?.properties||j.properties||j.features?.[0]?.properties||{};
-        const h=getH(p);
+        const j=await getJSON(B3D+'/collections/pand/items/'+encodeURIComponent(id));
+        const p=exactProps(j);
+        const h=heightFrom(p);
         if(h!=null)return h;
-      }catch(e){console.warn('3DBAG directe pand-opvraag mislukt',e)}
+      }catch(e){
+        console.warn('3DBAG directe opvraag mislukt voor',id,e);
+      }
     }
 
-    // Tweede, betrouwbare route: haal een kleine 3DBAG-set rond het adres op
-    // en neem uitsluitend een feature waarvan de BAG-identificatie exact matcht.
-    const d=.00035,b=[lon-d,lat-d,lon+d,lat+d].join(',');
+    // Fallback: alleen een exacte BAG-identificatie uit een kleine bbox accepteren.
+    const d=.00045,b=[lon-d,lat-d,lon+d,lat+d].join(',');
     const j=await getJSON(B3D+'/collections/pand/items?bbox='+b+'&limit=100');
-    const fs=j.features||[];
-    for(const f of fs){
+    for(const f of (j.features||[])){
       const p=f.properties||{};
       const ids=[p.identificatie,p.identification,p.bag_identificatie,p.bag_id,f.id];
       if(ids.some(x=>norm(x)===wanted)){
-        const h=getH(p);
+        const h=heightFrom(p);
         if(h!=null)return h;
       }
     }
-    // Geen exacte match = geen hoogte tonen. Nooit de hoogte van een ander pand gebruiken.
     return null;
   }catch(e){
     console.warn('3DBAG hoogte',e);
@@ -80,7 +114,7 @@ async function findHeight(pandId,lon,lat){
   }
 }
 function nearestSegment(r,p){let best={i:0,d:Infinity,q:r[0]};for(let i=0;i<r.length-1;i++){const a=r[i],b=r[i+1],dx=b[0]-a[0],dy=b[1]-a[1],den=dx*dx+dy*dy||1;let t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/den;t=Math.max(0,Math.min(1,t));const q=[a[0]+t*dx,a[1]+t*dy],d=Math.hypot((q[0]-p[0])*Math.cos(p[1]*Math.PI/180),q[1]-p[1]);if(d<best.d)best={i,d,q}}return best}
-function render(r,a,roadFeatures,height,allBuildings){const W=1000,H=730,mc=centroid(r),mLat=111320,mLon=111320*Math.cos(a.lat*Math.PI/180),vw=78,vh=56,minx=mc[0]-vw/2/mLon,maxx=mc[0]+vw/2/mLon,miny=mc[1]-vh/2/mLat,maxy=mc[1]+vh/2/mLat,sc=Math.min(W/vw,H/vh),tx=x=>(x-minx)*mLon*sc,ty=y=>H-(y-miny)*mLat*sc,gr=$('grid'),ro=$('road'),su=$('surroundings'),bd=$('building'),la=$('labels'),no=$('north');[gr,ro,su,bd,la,no].forEach(clear);for(let x=0;x<=W;x+=55)el('line',{x1:x,y1:0,x2:x,y2:H,stroke:'#e4e0d8'},gr);for(let y=0;y<=H;y+=55)el('line',{x1:0,y1:y,x2:W,y2:y,stroke:'#e4e0d8'},gr);
+function render(r,a,roadFeatures,height,allBuildings){const W=1000,H=730,mc=centroid(r),mLat=111320,mLon=111320*Math.cos(a.lat*Math.PI/180),vw=62,vh=45,minx=mc[0]-vw/2/mLon,maxx=mc[0]+vw/2/mLon,miny=mc[1]-vh/2/mLat,maxy=mc[1]+vh/2/mLat,sc=Math.min(W/vw,H/vh),tx=x=>(x-minx)*mLon*sc,ty=y=>H-(y-miny)*mLat*sc,gr=$('grid'),ro=$('road'),su=$('surroundings'),bd=$('building'),la=$('labels'),no=$('north');[gr,ro,su,bd,la,no].forEach(clear);for(let x=0;x<=W;x+=55)el('line',{x1:x,y1:0,x2:x,y2:H,stroke:'#e4e0d8'},gr);for(let y=0;y<=H;y+=55)el('line',{x1:0,y1:y,x2:W,y2:y,stroke:'#e4e0d8'},gr);
 if((allBuildings||[]).length){for(const f of allBuildings){const id=String(f.properties?.identificatie||f.id||'');if(id===String(window.__targetPandId||''))continue;const rr=ringOf(f.geometry);if(!rr)continue;const cc=centroid(rr);if(cc[0]<minx||cc[0]>maxx||cc[1]<miny||cc[1]>maxy)continue;el('polygon',{points:rr.map(q=>tx(q[0])+','+ty(q[1])).join(' '),fill:'#aeb8c4',stroke:'#919eab','stroke-width':1.5,opacity:.92},su)}}
 if((roadFeatures||[]).length){let labelPoint=null,best=Infinity;for(const rd of roadFeatures){let parts=[];if(rd.geometry?.type==='Polygon')parts=[rd.geometry.coordinates[0]];else if(rd.geometry?.type==='MultiPolygon')parts=rd.geometry.coordinates.map(x=>x[0]);else if(rd.geometry?.type==='LineString')parts=[rd.geometry.coordinates];for(const rr of parts){el('polygon',{points:rr.map(q=>tx(q[0])+','+ty(q[1])).join(' '),fill:'#b8c2cd',stroke:'#9ca8b4','stroke-width':1.5},ro);const cc=centroid(rr),dd=Math.hypot((cc[0]-a.lon)*111320*Math.cos(a.lat*Math.PI/180),(cc[1]-a.lat)*111320);if(dd<best){best=dd;labelPoint=cc}}}if(labelPoint){const rt=el('text',{x:tx(labelPoint[0]),y:ty(labelPoint[1])+8,'text-anchor':'middle','font-size':26,'font-weight':'bold',fill:'#173f69'},ro);rt.textContent=a.street||'Straat'}}
 el('polygon',{points:r.map(q=>tx(q[0])+','+ty(q[1])).join(' '),fill:'#d9e8f7',stroke:'#103e68','stroke-width':6},bd);const c=centroid(r),cx=tx(c[0]),cy=ty(c[1]);el('rect',{x:cx-110,y:cy-30,width:220,height:60,rx:10,fill:'#fff',stroke:'#4d88bd','stroke-width':2},bd);const ht=el('text',{x:cx,y:cy+7,'text-anchor':'middle',fill:'#17324d','font-size':20,'font-weight':'bold'},bd);ht.textContent='BAG3D hoogte:';const hv=el('text',{x:cx,y:cy+28,'text-anchor':'middle',fill:'#123d6d','font-size':22,'font-weight':'700'},bd);hv.textContent=height!=null?height.toFixed(1).replace('.',',')+' m':'n.b.';
