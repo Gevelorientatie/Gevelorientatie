@@ -86,6 +86,7 @@ main{padding:22px 28px 28px;display:grid;grid-template-columns:minmax(0,1fr) 330
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const LOC='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free';
+const LOCATION_API='https://api.pdok.nl/kadaster/location-api/v1/search';
 const BAG='https://api.pdok.nl/kadaster/bag/ogc/v2';
 const BAG_WFS='https://service.pdok.nl/kadaster/bag/wfs/v2_0';
 const BAG3D='https://api.3dbag.nl';
@@ -261,33 +262,51 @@ async function search(){
     const q=document.getElementById('address').value.trim();
     if(!q)throw new Error('Vul eerst een adres in.');
     setStatus('Adres zoeken…');
-    const geo=await getJson(LOC+'?q='+encodeURIComponent(q)+'&rows=10');
-    const docs=geo.response?.docs||[];
-    if(!docs.length)throw new Error('Adres niet gevonden.');
-    const d=docs.find(x=>x.type==='adres')||docs[0];
 
-    // PDOK Locatieserver levert coördinaten niet altijd als d.lat/d.lon.
-    // Gebruik daarom eerst centroide_ll en daarna de losse lat/lon velden.
+    // Nieuwe PDOK Location API: levert een GeoJSON-feature met echte geometry.
+    // Oude Locatieserver blijft als fallback aanwezig.
     function readCoords(x){
-      let c=x.centroide_ll||x.centroide_ll_rd||x.centroid||x.centroide;
+      if(!x)return null;
+      const g=x.geometry||x.geometrie||x.location?.geometry;
+      if(g?.type==='Point' && Array.isArray(g.coordinates) && g.coordinates.length>=2){
+        const lon=+g.coordinates[0],lat=+g.coordinates[1];
+        if(isFinite(lon)&&isFinite(lat)&&Math.abs(lon)<=180&&Math.abs(lat)<=90)return {lon,lat};
+      }
+      let c=x.centroide_ll||x.centroide_ll_rd||x.centroid||x.centroide||x.geometrie_ll||x.point;
       if(Array.isArray(c) && c.length>=2){
         const a=+c[0],b=+c[1];
-        // WGS84 is [lon,lat] bij GeoJSON-achtige arrays.
-        if(Math.abs(a)<=180 && Math.abs(b)<=90) return {lon:a,lat:b};
+        if(Math.abs(a)<=180&&Math.abs(b)<=90)return {lon:a,lat:b};
       }
       if(typeof c==='string'){
-        const m=c.match(/POINT\\s*\\(\\s*([-\\d.]+)\\s+([-\\d.]+)\\s*\\)/i);
+        const m=c.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
         if(m){
           const lon=+m[1],lat=+m[2];
-          if(isFinite(lon)&&isFinite(lat)) return {lon,lat};
+          if(isFinite(lon)&&isFinite(lat)&&Math.abs(lon)<=180&&Math.abs(lat)<=90)return {lon,lat};
         }
       }
       const lat=+(x.lat??x.latitude),lon=+(x.lon??x.longitude);
-      if(isFinite(lat)&&isFinite(lon)) return {lat,lon};
+      if(isFinite(lat)&&isFinite(lon)&&Math.abs(lon)<=180&&Math.abs(lat)<=90)return {lat,lon};
       return null;
     }
 
-    const coords=readCoords(d);
+    let d=null,coords=null;
+    try{
+      const loc=await getJson(LOCATION_API+'?q='+encodeURIComponent(q)+'&collections=adres&limit=10&f=json');
+      const fs=loc.features||loc.results||[];
+      if(fs.length){
+        const f=fs[0];
+        d={...(f.properties||{}),...f};
+        coords=readCoords(f);
+      }
+    }catch(_){ }
+
+    if(!coords){
+      const geo=await getJson(LOC+'?q='+encodeURIComponent(q)+'&rows=10');
+      const docs=geo.response?.docs||[];
+      if(!docs.length)throw new Error('Adres niet gevonden.');
+      d=docs.find(x=>x.type==='adres')||docs[0];
+      coords=readCoords(d);
+    }
     if(!coords)throw new Error('PDOK gaf geen bruikbare coördinaten terug voor dit adres.');
     const lat=coords.lat,lon=coords.lon;
     map.setView([lat,lon],19);
