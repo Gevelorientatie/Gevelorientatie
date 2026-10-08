@@ -106,11 +106,17 @@ async function findAddress(q){
  const docs=j.response?.docs||[];
  if(!docs.length) throw new Error('Adres niet gevonden.');
  const d=docs.find(x=>x.type==='adres')||docs[0];
- const c=d.centroide_ll;
+ const c=d.centroide_ll || d.centroide_rd;
  if(!c) throw new Error('PDOK gaf geen coördinaten voor dit adres.');
- const m=String(c).match(/POINT\\(([-\\d.]+)\\s+([-\\d.]+)\\)/);
- if(!m) throw new Error('PDOK-coördinaten konden niet worden gelezen.');
- return {lon:+m[1],lat:+m[2],label:d.weergavenaam||q};
+ let lon,lat;
+ if(Array.isArray(c) && c.length>=2){ lon=Number(c[0]); lat=Number(c[1]); }
+ else {
+   const m=String(c).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+   if(!m) throw new Error('PDOK-coördinaten konden niet worden gelezen. Probeer bijvoorbeeld: Straatnaam 12, 5701 AB Helmond');
+   lon=Number(m[1]); lat=Number(m[2]);
+ }
+ if(!Number.isFinite(lon)||!Number.isFinite(lat)) throw new Error('Ongeldige PDOK-coördinaten ontvangen.');
+ return {lon,lat,label:d.weergavenaam||q};
 }
 
 async function findPand(lon,lat){
