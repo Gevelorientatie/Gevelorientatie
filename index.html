@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geveloriëntatie – BAG + PDOK luchtfoto</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+ integrity="sha256-p4NxAoJBhIINfQ3YwD6p7v1yQ3QxgVv2g1Q8k6J1lY="
+ crossorigin=""/>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f5f7;color:#17202a}
+header{background:#fff;padding:18px 22px;border-bottom:1px solid #ddd}
+h1{font-size:22px;margin:0 0 5px}.sub{color:#666;font-size:13px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input{width:min(620px,90vw);padding:12px;border:1px solid #aaa;border-radius:7px;font-size:16px}
+button{padding:12px 18px;border:0;border-radius:7px;background:#1769aa;color:#fff;font-size:16px;cursor:pointer}
+button:disabled{opacity:.55}
+#status{margin-top:10px;color:#555;min-height:20px}
+#map{height:calc(100vh - 170px);min-height:520px}
+.label{background:#fff;border:1px solid #222;border-radius:5px;padding:4px 6px;font-weight:700;font-size:12px;white-space:nowrap;box-shadow:0 1px 3px #555}
+.info{background:#fff;padding:9px 11px;border-radius:6px;box-shadow:0 1px 5px #999;font-size:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+<h1>Geveloriëntatie</h1>
+<div class="sub">Adres → BAG-pand → gevelrichting in graden en windrichting → PDOK luchtfoto</div>
+<div class="row">
+<input id="address" placeholder="Bijv. Markt 1, 5701 Helmond" autocomplete="street-address">
+<button id="go">Zoek adres</button>
+</div>
+<div id="status">Klaar.</div>
+</header>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+ integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+ crossorigin=""></script>
+<script>
+const API='https://api.pdok.nl/kadaster/bag/ogc/v2';
+const LOC='https://api.pdok.nl/bzk/locatieserver/search/v3_1/free';
+const map=L.map('map').setView([52.2,5.3],8);
+
+const luchtfoto=L.tileLayer.wms('https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0',{
+  layers:'Actueel_ortho25',format:'image/png',transparent:false,version:'1.3.0',
+  attribution:'© Kadaster / PDOK – Luchtfoto'
+}).addTo(map);
+
+let drawn=[];
+function clearDrawn(){drawn.forEach(x=>map.removeLayer(x));drawn=[]}
+function status(t){document.getElementById('status').textContent=t}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+async function getJSON(url){
+  const r=await fetch(url,{headers:{Accept:'application/geo+json, application/json'}});
+  if(!r.ok) throw new Error('HTTP '+r.status+' bij '+new URL(url).hostname);
+  return await r.json();
+}
+function firstCoord(g){
+  if(g.type==='Point') return g.coordinates;
+  if(g.type==='Polygon') return g.coordinates[0][0];
+  if(g.type==='MultiPolygon') return g.coordinates[0][0][0];
+}
+function ringOf(g){
+  if(g.type==='Polygon') return g.coordinates[0];
+  if(g.type==='MultiPolygon'){
+    let best=null, bestA=-1;
+    for(const p of g.coordinates){
+      const r=p[0]; let a=0;
+      for(let i=0;i<r.length-1;i++) a+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];
+      if(Math.abs(a)>bestA){bestA=Math.abs(a);best=r}
+    }
+    return best;
+  }
+  return null;
+}
+function centroid(r){let x=0,y=0;for(const p of r){x+=p[0];y+=p[1]}return[x/r.length,y/r.length]}
+function hav(a,b){
+ const R=6371000,rad=Math.PI/180,p1=a[1]*rad,p2=b[1]*rad,dp=(b[1]-a[1])*rad,dl=(b[0]-a[0])*rad;
+ const h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+ return 2*R*Math.asin(Math.sqrt(h));
+}
+function bearing(a,b){
+ const rad=Math.PI/180,p1=a[1]*rad,p2=b[1]*rad,dl=(b[0]-a[0])*rad;
+ const y=Math.sin(dl)*Math.cos(p2);
+ const x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+ return (Math.atan2(y,x)/rad+360)%360;
+}
+function compass(d){
+ return ['N','NNO','NO','ONO','O','OZO','ZO','ZZO','Z','ZZW','ZW','WZW','W','WNW','NW','NNW'][Math.round(d/22.5)%16];
+}
+function nearestFeature(fc,lon,lat){
+ let best=null,bd=Infinity;
+ for(const f of (fc.features||[])){
+   if(!f.geometry)continue;
+   const p=firstCoord(f.geometry); if(!p)continue;
+   const d=Math.hypot((p[0]-lon)*Math.cos(lat*Math.PI/180),p[1]-lat);
+   if(d<bd){bd=d;best=f}
+ }
+ return best;
+}
+
+async function findAddress(q){
+ const u=LOC+'?q='+encodeURIComponent(q)+'&rows=8';
+ const j=await getJSON(u);
+ const docs=j.response?.docs||[];
+ if(!docs.length) throw new Error('Adres niet gevonden.');
+ const d=docs.find(x=>x.type==='adres')||docs[0];
+ const c=d.centroide_ll;
+ if(!c) throw new Error('PDOK gaf geen coördinaten voor dit adres.');
+ const m=String(c).match(/POINT\\(([-\\d.]+)\\s+([-\\d.]+)\\)/);
+ if(!m) throw new Error('PDOK-coördinaten konden niet worden gelezen.');
+ return {lon:+m[1],lat:+m[2],label:d.weergavenaam||q};
+}
+
+async function findPand(lon,lat){
+ // Nieuwe BAG OGC API Features. Eerst verblijfsobject rond het adres,
+ // daarna de gerelateerde panden. Dit is nauwkeuriger dan alleen "dichtstbijzijnde pand".
+ const delta=0.00035;
+ const bbox=[lon-delta,lat-delta,lon+delta,lat+delta].join(',');
+ const vbo=await getJSON(API+'/collections/verblijfsobject/items?bbox='+bbox+'&limit=50');
+ let f=nearestFeature(vbo,lon,lat);
+ if(f?.properties?.pand?.length){
+   const href=f.properties.pand[0].href || f.properties.pand[0];
+   if(href) return await getJSON(href);
+ }
+ // Fallback: zoek rechtstreeks naar panden in de buurt.
+ const pand=await getJSON(API+'/collections/pand/items?bbox='+bbox+'&limit=100');
+ f=nearestFeature(pand,lon,lat);
+ if(!f) throw new Error('Geen BAG-pand rond het adres gevonden.');
+ return f;
+}
+
+async function search(){
+ const btn=document.getElementById('go'); btn.disabled=true; clearDrawn();
+ try{
+   const q=document.getElementById('address').value.trim();
+   if(!q) throw new Error('Vul eerst een adres in.');
+   status('Adres zoeken via PDOK…');
+   const a=await findAddress(q);
+   map.setView([a.lat,a.lon],19);
+
+   status('BAG-pand bepalen…');
+   const pand=await findPand(a.lon,a.lat);
+   const ring=ringOf(pand.geometry);
+   if(!ring || ring.length<4) throw new Error('BAG-pand heeft geen bruikbare omtrek.');
+
+   const poly=L.polygon(ring.map(p=>[p[1],p[0]]),{color:'#e31a1c',weight:3,fillOpacity:.08}).addTo(map);
+   drawn.push(poly);
+   map.fitBounds(poly.getBounds().pad(.8));
+
+   const mark=L.marker([a.lat,a.lon]).addTo(map)
+     .bindPopup('<b>'+esc(a.label)+'</b><br>BAG-pandsnummer: '+esc(pand.properties?.identificatie||pand.id||'onbekend')).openPopup();
+   drawn.push(mark);
+
+   const c=centroid(ring), info=L.control({position:'topright'});
+   info.onAdd=function(){
+     const d=L.DomUtil.create('div','info');
+     d.innerHTML='<b>Geveloriëntatie</b><br>0° = noord · 90° = oost · 180° = zuid · 270° = west';
+     return d;
+   };
+   info.addTo(map); drawn.push(info);
+
+   let count=0;
+   for(let i=0;i<ring.length-1;i++){
+     const p=ring[i],q2=ring[i+1],len=hav(p,q2);
+     if(len<0.5) continue;
+     const mid=[(p[0]+q2[0])/2,(p[1]+q2[1])/2];
+     const dx=q2[0]-p[0],dy=q2[1]-p[1];
+     const eps=0.00006;
+     const n1=[mid[0]-dy*eps,mid[1]+dx*eps];
+     const n2=[mid[0]+dy*eps,mid[1]-dx*eps];
+     const d1=Math.hypot((n1[0]-c[0])*Math.cos(a.lat*Math.PI/180),n1[1]-c[1]);
+     const d2=Math.hypot((n2[0]-c[0])*Math.cos(a.lat*Math.PI/180),n2[1]-c[1]);
+     const out=d1>d2?n1:n2;
+     const deg=bearing(mid,out);
+     const text=Math.round(deg)+'° '+compass(deg)+' · '+len.toFixed(1)+' m';
+     const lab=L.marker([mid[1],mid[0]],{
+       icon:L.divIcon({className:'label',html:esc(text),iconSize:null,iconAnchor:[0,0]})
+     }).addTo(map);
+     drawn.push(lab); count++;
+   }
+   status('Klaar: '+count+' gevelzijden. Richting is de buitenzijde van de gevel, gemeten vanaf noord met de klok mee.');
+ }catch(e){
+   console.error(e); status('Fout: '+e.message);
+ }finally{btn.disabled=false}
+}
+document.getElementById('go').onclick=search;
+document.getElementById('address').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
+</script>
+</body>
+</html>
